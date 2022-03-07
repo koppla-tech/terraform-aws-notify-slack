@@ -76,6 +76,13 @@ class CloudWatchAlarmState(Enum):
     ALARM = "danger"
 
 
+def ignore_cloudwatch_alarm(message: Dict[str, Any]) -> bool:
+    ignore_insufficient_change = os.environ.get("IGNORE_INSUFFICIENT_CHANGE", "False") == "True"
+    if ignore_insufficient_change:
+        return message['OldStateValue'] == "INSUFFICIENT_DATA" and message['NewStateValue'] == "OK"
+    return False
+
+
 def format_cloudwatch_alarm(message: Dict[str, Any], region: str) -> Dict[str, Any]:
     """Format CloudWatch alarm event into Slack message format
 
@@ -224,7 +231,7 @@ def format_default(
 
 def get_slack_message_payload(
     message: Union[str, Dict], region: str, subject: Optional[str] = None
-) -> Dict:
+) -> Optional[Dict]:
     """
     Parse notification message and format into Slack message payload
 
@@ -254,6 +261,8 @@ def get_slack_message_payload(
     message = cast(Dict[str, Any], message)
 
     if "AlarmName" in message:
+        if ignore_cloudwatch_alarm(message=message):
+            return None
         notification = format_cloudwatch_alarm(message=message, region=region)
         attachment = notification
 
@@ -301,7 +310,7 @@ def send_slack_notification(payload: Dict[str, Any]) -> str:
         return json.dumps({"code": e.getcode(), "info": e.info().as_string()})
 
 
-def lambda_handler(event: Dict[str, Any], context: Dict[str, Any]) -> str:
+def lambda_handler(event: Dict[str, Any], context: Dict[str, Any]) -> Union[str, Dict[str, Any]]:
     """
     Lambda function to parse notification events and forward to Slack
 
@@ -321,6 +330,8 @@ def lambda_handler(event: Dict[str, Any], context: Dict[str, Any]) -> str:
         payload = get_slack_message_payload(
             message=message, region=region, subject=subject
         )
+        if payload is None:
+            return {"statusCode": 200, "body": "Alarm ignored."}
         response = send_slack_notification(payload=payload)
 
     if json.loads(response)["code"] != 200:
