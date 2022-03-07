@@ -90,11 +90,12 @@ module "lambda" {
   publish = true
 
   environment_variables = {
-    SLACK_WEBHOOK_URL = var.slack_webhook_url
-    SLACK_CHANNEL     = var.slack_channel
-    SLACK_USERNAME    = var.slack_username
-    SLACK_EMOJI       = var.slack_emoji
-    LOG_EVENTS        = var.log_events ? "True" : "False"
+    SLACK_WEBHOOK_URL          = var.slack_webhook_url
+    SLACK_CHANNEL              = var.slack_channel
+    SLACK_USERNAME             = var.slack_username
+    SLACK_EMOJI                = var.slack_emoji
+    LOG_EVENTS                 = var.log_events ? "True" : "False"
+    IGNORE_INSUFFICIENT_CHANGE = var.ignore_insufficient_change
   }
 
   create_role               = var.lambda_role == ""
