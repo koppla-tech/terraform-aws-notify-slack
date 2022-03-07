@@ -80,6 +80,31 @@ def test_event_get_slack_message_payload_snapshots(snapshot, monkeypatch):
             snapshot.assert_match(attachments, f"event_{filename}")
 
 
+def test_ignores_sufficient_state_change(monkeypatch):
+    """
+    Test that alarm going from INSUFFICIENT -> OK is ignored
+    if env var is set.
+    """
+
+    monkeypatch.setenv("SLACK_CHANNEL", "slack_testing_sandbox")
+    monkeypatch.setenv("SLACK_USERNAME", "notify_slack_test")
+    monkeypatch.setenv("SLACK_EMOJI", ":aws:")
+    monkeypatch.setenv("IGNORE_INSUFFICIENT_CHANGE", "True")
+
+    _dir = "./events"
+    ignore_events = ["cloudwatch_alarm_ready.json"]
+    events = [f for f in ignore_events if os.path.isfile(os.path.join(_dir, f))]
+
+    for file in events:
+        with open(os.path.join(_dir, file), "r") as ofile:
+            event = ast.literal_eval(ofile.read())
+
+            payload = notify_slack.get_slack_message_payload(
+                message=event, region="us-east-1", subject="bar"
+            )
+            assert payload is None
+
+
 def test_environment_variables_set(monkeypatch):
     """
     Should pass since environment variables are provided
