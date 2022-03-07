@@ -179,3 +179,10 @@ variable "subscription_filter_policy" {
   type        = string
   default     = null
 }
+
+
+variable "ignore_insufficient_change" {
+  description = "Events triggered by the alarm state changing from INSUFFICIENT_DATA to OK are ignored if this is true."
+  type        = bool
+  default     = false
+}
